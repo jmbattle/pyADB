@@ -282,7 +282,7 @@ class Client():
         else:
             subprocess.check_output('adb -s %s shell cd %s' % (self.__id, path), shell=True)
 
-    def mkdir(self, path=None, mode=None, recursive=False): # Not yet tested
+    def mkdir(self, path=None, mode=None, recursive=False):
         if path == None:
             pass
         else:
@@ -291,13 +291,13 @@ class Client():
                     subprocess.check_output('adb -s %s shell mkdir -p %s' % (self.__id, path), shell=True)
                 elif recursive == True:
                     subprocess.check_output('adb -s %s shell mkdir %s' % (self.__id, path), shell=True)                    
-            if mode.isdigit():
+            elif mode.isdigit():
                 if recursive == False:
                     subprocess.check_output('adb -s %s shell mkdir -m %s %s' % (self.__id, mode, path), shell=True)
                 elif recursive == True:
                     subprocess.check_output('adb -s %s shell mkdir -mp %s %s' % (self.__id, mode, path), shell=True)         
 
-    def rmdir(self, path=None): # Not yet tested
+    def rmdir(self, path=None):
         if path == None:
             pass
         else:
@@ -327,21 +327,25 @@ class Client():
             
     def touch(self, path): # Not yet tested
         subprocess.check_output('adb -s %s shell touch %s' % (self.__id, path), shell=True)
-    
+
     def echo(self, text, fname): # Not yet tested
         subprocess.check_output('adb -s %s shell echo %s > %s' % (self.__id, text, fname), shell=True)
 
     def screencap(self):
         subprocess.check_output('adb -s %s shell screencap /storage/sdcard0/DCIM/Screenshots/screen.png' % self.__id, shell=True)
 
-    def screenrecord(self): # Not yet tested
-        subprocess.check_output('adb -s %s shell screenrecord /storage/sdcard0/DCIM/Screenshots/screen.mp4' % self.__id, shell=True)
+    def screenrecord(self, duration=None):
+        if duration != None:
+            subprocess.check_output('adb -s %s shell screenrecord --time-limit %i /storage/sdcard0/DCIM/Screenshots/screen.mp4' % (self.__id, duration), shell=True)
+        else:
+            subprocess.check_output('adb -s %s shell screenrecord /storage/sdcard0/DCIM/Screenshots/screen.mp4' % self.__id, shell=True)
 
     def dumpsys(self):
         self.__tmp = filter(None, subprocess.check_output('adb -s %s shell dumpsys battery' % self.__id, shell=True).split('\r\r\n'))
         self.__tmp = filter(lambda x : re.match(r'.+:.+', x), map(lambda x: x.replace(' ', ''), self.__tmp))        
         self.__dat = {}
         [self.__dat.update({line.split(':')[0]:line.split(':')[1]}) for line in self.__tmp]
+        del self.__tmp
         return self.__dat        
  
     def listpackages(self, pattern=None):
@@ -356,68 +360,127 @@ class Client():
         else:
             subprocess.check_output('adb -s %s shell monkey %i' % (self.__id, eventcount), shell=True)                
 
-###EXPERIMENTAL COMMANDS########################################################
+###EXPERIMENTAL COMMANDS######################################################## 
+
+    def GetVoltage(self):
+        return int(self.dumpsys()['voltage'])
+        
+    def GetCurrent(self):
+        return int(self.dumpsys()['currentnow'])
+
+    def GetTemperature(self):
+        return int(self.dumpsys()['temperature'])
+
+    def GetSOC(self):
+        return int(self.dumpsys()['level'])
+
+    def GetBatteryType(self):
+        return self.dumpsys()['technology']
+    
+    def GetChargeSource(self):
+        if self.dumpsys()['ACpowered'] == 'true':
+            return 'AC Adapter Charging'
+        elif self.dumpsys()['USBpowered'] == 'true':
+            return 'USB Port Charging'
+        elif self.dumpsys()['Wirelesspowered'] == 'true':
+            return 'Wireless Charging'
+        else:
+            return 'Not Charging'
 
     def LaunchImage(self, fpath):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t image -d file:///%s' % (self.__id, fpath), shell=True)   
+        self.Wake()
+        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t image/* -d file:///%s' % (self.__id, fpath), shell=True)   
+        self.TapEvent(280, 1670)
 
-    def LaunchAudio(self, fpath): # Not yet tested
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t audio -d file:///%s' % (self.__id, fpath), shell=True) 
+    def LaunchAudio(self, fpath):
+        self.Wake()
+        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t audio/* -d file:///%s' % (self.__id, fpath), shell=True) 
+        self.TapEvent(280, 1670)
 
-    def LaunchVideo(self, fpath): # Not yet tested
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t video -d file:///%s' % (self.__id, fpath), shell=True) 
+    def LaunchVideo(self, fpath):
+        self.Wake()
+        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t video/* -d file:///%s' % (self.__id, fpath), shell=True) 
+        self.TapEvent(800, 1670)
 
-    def LaunchText(self, fpath): # Not yet tested
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t text -d file:///%s' % (self.__id, fpath), shell=True) 
+    def LaunchDocument(self, fpath):
+        self.Wake()
+        subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -t text/* -d file:///%s' % (self.__id, fpath), shell=True) 
+        self.TapEvent(280, 1670)
 
     def LaunchBrowser(self, url):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
+        self.Wake()
         subprocess.check_output('adb -s %s shell am start -a android.intent.action.VIEW -d %s' % (self.__id, url), shell=True)   
+        self.TapEvent(280, 1670)
 
     def LaunchCamera(self):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
+        self.Wake()
         subprocess.check_output('adb -s %s shell am start -a android.media.action.IMAGE_CAPTURE' % (self.__id), shell=True)  
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_FOCUS), shell=True)         
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_CAMERA), shell=True)
-        time.sleep(2)         
-        subprocess.check_output('adb -s %s shell input tap 810 85' % self.__id, shell=True)
+        self.KeyEvent(KEYCODE_FOCUS)         
+        self.KeyEvent(KEYCODE_CAMERA)
+        self.Wait(2)
+        self.TapEvent(810, 85)
 
     def LaunchGmail(self, address, subject, body):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
+        self.Wake()
         subprocess.check_output('adb -s %s shell am start -n com.google.android.gm/.ComposeActivityGmail -d email:%s --es subject %s --es body %s' % (self.__id, address, subject, body), shell=True)
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_DPAD_UP), shell=True) 
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_DPAD_CENTER), shell=True) 
-        subprocess.check_output('adb -s %s shell input tap 880 160' % self.__id, shell=True)
+        self.TapEvent(880, 160)
 
     def LaunchYouTube(self, ID):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
+        self.Wake()
         subprocess.check_output('adb -s %s shell am start -n com.google.android.youtube/.UrlActivity -d %s' % (self.__id, ID), shell=True)  
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_MEDIA_PLAY), shell=True)         
+        self.Play()
 
-    def KeyEvent(self, keyevent):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, keyevent), shell=True) 
+    def KeyEvent(self, eventcode):
+        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, eventcode), shell=True) 
 
-    def KillAllProcesses(self):
-        subprocess.check_output('adb -s %s shell input keyevent %i' % (self.__id, KEYCODE_WAKEUP), shell=True) 
-        subprocess.check_output('adb -s %s shell input swipe 0 1000 1000 1000' % self.__id, shell=True) 
-        subprocess.check_output('adb -s %s shell am kill-all' % self.__id, shell=True)           
+    def SwipeEvent(self, x1, x2, y1, y2):
+        subprocess.check_output('adb -s %s shell input swipe %i %i %i %i' % (self.__id, x1, x2, y1, y2), shell=True) 
 
-    def Reboot(self): # Hangs following reboot. Need to investigate workaround.
-        subprocess.check_output('adb -s %s shell am broadcast -a android.intent.action.BOOT_COMPLETED' % self.__id, shell=True)
+    def TapEvent(self, x, y):
+        subprocess.check_output('adb -s %s shell input tap %i %i' % (self.__id, x , y), shell=True)
+
+    def Play(self):
+        self.KeyEvent(KEYCODE_MEDIA_PLAY)
+
+    def Pause(self):
+        self.KeyEvent(KEYCODE_MEDIA_PAUSE)
+        
+    def Stop(self):
+        self.KeyEvent(KEYCODE_MEDIA_STOP)
+
+    def Rewind(self):
+        self.KeyEvent(KEYCODE_MEDIA_REWIND)
+
+    def Fastforward(self):
+        self.KeyEvent(KEYCODE_MEDIA_FAST_FORWARD)    
+
+    def Next(self):
+        self.KeyEvent(KEYCODE_MEDIA_NEXT)            
+    
+    def Previous(self):
+        self.KeyEvent(KEYCODE_MEDIA_PREVIOUS)
+
+    def VolumeUp(self):
+        self.KeyEvent(KEYCODE_DPAD_VOLUME_UP)
+
+    def VolumeDown(self):
+        self.KeyEvent(KEYCODE_DPAD_VOLUME_DOWN)        
+
+    def VolumeMute(self):
+        self.KeyEvent(KEYCODE_VOLUME_MUTE)        
+
+    def Wake(self):
+        self.KeyEvent(KEYCODE_WAKEUP)
+        self.SwipeEvent(0, 1000, 1000, 1000)        
+
+    def Wait(self, duration):
+        time.sleep(duration)          
+
+    def Reboot(self):
+        subprocess.check_output('adb -s %s shell reboot' % self.__id, shell=True)
+
+    def KillAll(self):
+        subprocess.check_output('adb -s %s shell am kill-all' % self.__id, shell=True) 
 
 ####EXCEPTIONS#################################################################
 
@@ -432,4 +495,3 @@ class FileError(Exception):
         
 class DeviceError(Exception):
     pass
-  
