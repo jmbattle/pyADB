@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ADB.py: Helper class for interacting with Android devices over ADB 
+"""pyADB.py: Helper class for interacting with Android devices over ADB 
 
 __author__ = "Jason M. Battle"
 """
