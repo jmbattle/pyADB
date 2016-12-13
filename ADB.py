@@ -2,9 +2,6 @@
 """ADB.py: Helper class for interacting with Android devices over ADB 
 
 __author__ = "Jason M. Battle"
-__copyright__ = "Copyright 2016, Jason M. Battle"
-__license__ = "MIT"
-__email__ = "jason.battle@gmail.com"
 """
 
 ####IMPORTS####################################################################
